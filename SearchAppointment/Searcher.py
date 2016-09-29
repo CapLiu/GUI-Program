@@ -3,7 +3,7 @@ import requests,re
 from  bs4 import BeautifulSoup
 import sitecustomize
 from requests.exceptions import Timeout,ConnectionError
-
+import threading,os
 
 class searcher:
 
@@ -12,25 +12,63 @@ class searcher:
         self._consult_dict={}
         self._baseurl='http://www.bjguahao.gov.cn'
         self._search_result=[]
+        #多线程获取
+        # self._lock=threading.Lock()
+        # self._threads=[]
+
+    # def get_hospital_multithread(self,i):
+    #     url = 'http://www.bjguahao.gov.cn/hp/' + str(i) + ',0,0,0.htm?'
+    #     try:
+    #         wbtext=requests.get(url)
+    #     except ConnectionError,e:
+    #         raise e
+    #     wbtext.encoding='utf-8'
+    #     soup=BeautifulSoup(wbtext.text,'lxml',from_encoding='utf-8')
+    #     for j in range(1,11):
+    #         if i==16:
+    #             if j==7:
+    #                 return
+    #         hospital = soup.select('#yiyuan_content > div:nth-of-type(' + str(j) + ') > dl > dd > p > a')[0].text
+    #         hospital_url = soup.select('#yiyuan_content > div:nth-of-type(' + str(j) + ') > dl > dd > p > a')[0]['href']
+    #         self._lock.acquire()
+    #         try:
+    #             self._hospital_dict[hospital] = self._baseurl + hospital_url
+    #         finally:
+    #             self._lock.release()
+    #
+    # def launch_multithread(self):
+    #     for i in range(1, 17):
+    #         self._threads.append(threading.Thread(target=self.get_hospital_multithread,args=(i,)))
+    #     for t in self._threads:
+    #         t.start()
 
     def get_hospital(self):
-        #hospital_file=open('hospital.txt','a+')
-        for i in range(1,17):
-            url='http://www.bjguahao.gov.cn/hp/'+str(i)+',0,0,0.htm?'
-            try:
-                wbtext=requests.get(url)
-            except ConnectionError,e:
-                raise e
-            wbtext.encoding='utf-8'
-            soup=BeautifulSoup(wbtext.text,'lxml',from_encoding='utf-8')
-            for j in range(1,11):
-                if i==16:
-                    if j==7:
-                        return
-                hospital=soup.select('#yiyuan_content > div:nth-of-type('+str(j)+') > dl > dd > p > a')[0].text
-                hospital_url=soup.select('#yiyuan_content > div:nth-of-type('+str(j)+') > dl > dd > p > a')[0]['href']
-                self._hospital_dict[hospital]=self._baseurl+hospital_url
-                #hospital_file.write(hospital+'#'+self._baseurl+hospital_url+'\n')
+        if os.path.exists('hospital.txt'):
+            hospital_file=open('hospital.txt','r')
+            content=hospital_file.readlines()
+            hospital_file.close()
+            for line in content:
+                hospital=line.split('#')[0]
+                hospital_url=line.split('#')[1]
+                self._hospital_dict[hospital] = hospital_url
+        else:
+            hospital_file=open('hospital.txt','a+')
+            for i in range(1,17):
+                url='http://www.bjguahao.gov.cn/hp/'+str(i)+',0,0,0.htm?'
+                try:
+                    wbtext=requests.get(url)
+                except ConnectionError,e:
+                    raise e
+                wbtext.encoding='utf-8'
+                soup=BeautifulSoup(wbtext.text,'lxml',from_encoding='utf-8')
+                for j in range(1,11):
+                    if i==16:
+                        if j==7:
+                            return
+                    hospital=soup.select('#yiyuan_content > div:nth-of-type('+str(j)+') > dl > dd > p > a')[0].text
+                    hospital_url=soup.select('#yiyuan_content > div:nth-of-type('+str(j)+') > dl > dd > p > a')[0]['href']
+                    self._hospital_dict[hospital]=self._baseurl+hospital_url
+                    hospital_file.write(hospital+'#'+self._baseurl+hospital_url+'\n')
 
     def get_hospital_keys(self):
         return self._hospital_dict.keys()
@@ -83,10 +121,10 @@ class searcher:
 
             for i in range(0,len(result_list)):
                 if appoint_time.search(str(result_list[i])).group().split('_')[1]=='1':
-                    d_time= u'上午：'
+                    d_time= u'上午:'
                 else:
-                    d_time= u'下午：'
-                temp_result=getdate.search(str(result_list[i])).group(0)+d_time+str(result_list[i].text).lstrip()
+                    d_time= u'下午:'
+                temp_result=getdate.search(str(result_list[i])).group(0)+' '+d_time+str(result_list[i].text).lstrip()
                 self._search_result.append(temp_result)
             if self._search_result:
                 return
