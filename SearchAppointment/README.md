@@ -30,7 +30,7 @@ SearchAppointment v0.11
 改变了下拉框的长度  
 
 ========================================================================
-SearchAppointment v0.1  
+SearchAppointment v0.10   
 
 该程序用于搜索北京市预约挂号统一平台http://www.bjguahao.gov.cn/index.htm  
 
