@@ -12,6 +12,7 @@ class searcher:
         self._consult_dict={}
         self._baseurl='http://www.bjguahao.gov.cn'
         self._search_result=[]
+        self._appoint_url=""
         #多线程获取
         # self._lock=threading.Lock()
         # self._threads=[]
@@ -80,6 +81,9 @@ class searcher:
             self.get_hospital_from_net()
 
 
+    def get_appoint_url(self):
+        return self._appoint_url
+
     def get_hospital_keys(self):
         return self._hospital_dict.keys()
 
@@ -116,6 +120,7 @@ class searcher:
 
     def search_appointment(self,consulting_url):
         self._search_result = []
+        week_url=""
         for week in range(1,15):
             week_url='?week='+str(week)
             try:
@@ -136,4 +141,5 @@ class searcher:
                 temp_result=getdate.search(str(result_list[i])).group(0)+' '+d_time+str(result_list[i].text).lstrip()
                 self._search_result.append(temp_result)
             if self._search_result:
+                self._appoint_url=consulting_url+week_url
                 return

@@ -14,14 +14,17 @@ class login_helper:
         self.__logincookies={}
         self._baseurl = 'http://www.bjguahao.gov.cn'
         self.__verifycode=""
-
+        self.islogin=False
+        self.__doctor_info=[]
         #预约用信息
         self.__hospitalid=""
         self.__departmentid=""
         self.__dutyDate=""
         self.__dutyCode=1
-        self.__dutySourceId=""
-        self.__doctorId=""
+        self.__dutySourceId=[]
+        self.__doctorId=[]
+        self.__mk_doctorId=""
+        self.__mk_dutySourceId=""
         self.__mk_appoint_url=""
         self.__patientid=""
 
@@ -29,6 +32,18 @@ class login_helper:
         self.__mobileNo=mobileNo
         self.__passwd=passWord
 
+    def reset(self):
+        self.__doctor_info = []
+        self.__hospitalid = ""
+        self.__departmentid = ""
+        self.__dutyDate = ""
+        self.__dutyCode = 1
+        self.__dutySourceId = []
+        self.__doctorId = []
+        self.__mk_appoint_url = ""
+        self.__patientid = ""
+
+    #登录
     def login(self):
         main_url='http://www.bjguahao.gov.cn/index.htm'
         url='http://www.bjguahao.gov.cn/quicklogin.htm'
@@ -42,15 +57,27 @@ class login_helper:
                'yzm':'',
                'isAjax':'true'
                }
-        wbtext=self.__session.post(url,headers=headers,params=paras)
+        try:
+            wbtext=self.__session.post(url,headers=headers,params=paras)
+        except ConnectionError,e:
+            raise e
+        except Timeout,e:
+            raise e
         wbtext.encoding='utf-8'
-        cookie={'JSESSIONID':wbtext.cookies['JSESSIONID'],
-                'SESSION_COOKIE':wbtext.cookies['SESSION_COOKIE']
-                }
-        self.__logincookies=cookie
+        json_str=json.loads(wbtext.content)
+        status=json_str['msg']
+        if status=="OK":
+            self.islogin=True
+            self.reset()
+            return True
+        else:
+            return False
 
-    #加载登录后页面
+
+
+    #加载登录后页面，url=_appoint_url，appoint_info=result_list[i]
     def load_appoint_page(self,url,appoint_info):
+        self.reset()
         getid=re.compile(r'\d{3}-\d{9}')
         ids=getid.search(url).group(0)
         self.__hospitalid=ids.split('-')[0]
@@ -76,14 +103,39 @@ class login_helper:
         }
         loaded_page=self.__session.post('http://www.bjguahao.gov.cn/dpt/partduty.htm',headers=headers,params=paras)
         json_str=json.loads(loaded_page.content,encoding='utf-8')
-        self.__dutySourceId=json_str['data'][0]['dutySourceId']
-        self.__doctorId=json_str['data'][0]['doctorId']
-        self.__mk_appoint_url=self._baseurl+'/order/confirm/'+str(self.__hospitalid)+'-'+str(self.__departmentid)+'-'+str(self.__doctorId)+'-'+str(self.__dutySourceId)+'.htm'
+        tmp_info=json_str['data']
+        for item in tmp_info:
+            self.__dutySourceId.append(item['dutySourceId'])
+            self.__doctorId.append(item['doctorId'])
+            doctor_title=item['doctorTitleName']
+            doctor_skill=item['skill']
+            totalFee=item['totalFee']
+            remain_number=item['remainAvailableNumber']
+            tmp_doctor_info=doctor_title + ' ' + doctor_skill + '\n' + u'挂号费：' + str(totalFee)
+            if remain_number>0:
+                self.__doctor_info.append(tmp_doctor_info)
+            # self.__dutySourceId=json_str['data'][0]['dutySourceId']
+            # self.__doctorId=json_str['data'][0]['doctorId']
+            # #显示出的医生信息
+            # doctor_title=json_str['data'][0]['doctorTitleName']
+            # doctor_skill = json_str['data'][0]['skill']
+            # totalFee = json_str['data'][0]['totalFee']
+            # self.__doctor_info = doctor_title + ' ' + doctor_skill + '\n' + u'挂号费：' + str(totalFee)
+
+    def get_patientid(self,index):
+        doctorId=self.__doctorId[index]
+        self.__mk_doctorId=str(doctorId)
+        dutySourceId=self.__dutySourceId[index]
+        self.__mk_dutySourceId=dutySourceId
+        self.__mk_appoint_url=self._baseurl+'/order/confirm/'+str(self.__hospitalid)+'-'+str(self.__departmentid)+'-'+str(doctorId)+'-'+str(dutySourceId)+'.htm'
+        #取得patient_id
         wbtext=self.__session.get(self.__mk_appoint_url)
         wbtext.encoding='utf-8'
         soup=BeautifulSoup(wbtext.text,'lxml')
         self.__patientid=soup.select('#Reservation_info > div.Rese_db > dl > dd > p > input[type="radio"]')[0]['value']
 
+    def get_doctor_info(self):
+        return self.__doctor_info
 
     def send_sms_verify(self):
         headers = {
@@ -94,7 +146,9 @@ class login_helper:
         # 发送短信验证码
         result = self.__session.post('http://www.bjguahao.gov.cn/v/sendorder.htm', headers=headers)
 
-    def make_appoint(self,reimbursementType,sms_verifycode):
+
+    #预约
+    def make_appoint(self,hospitalCardId,medicareCardId,reimbursementType,sms_verifycode):
         reimbursementTypeCode=1
         headers={
             'Referer':self.__mk_appoint_url,
@@ -102,13 +156,13 @@ class login_helper:
             'X-Requested-With':'XMLHttpRequest'
         }
         params={
-            'dutySourceId':self.__dutySourceId,
+            'dutySourceId':self.__mk_dutySourceId,
             'hospitalId':self.__hospitalid,
             'departmentId':self.__departmentid,
-            'doctorId':self.__doctorId,
+            'doctorId':self.__mk_doctorId,
             'patientId':self.__patientid,
-            'hospitalCardId':'',
-            'medicareCardId':'',
+            'hospitalCardId':hospitalCardId,#就诊卡
+            'medicareCardId':medicareCardId,#医保卡
             'reimbursementType':reimbursementTypeCode,
             'smsVerifyCode':sms_verifycode,
             'isFirstTime':'1',
@@ -119,10 +173,15 @@ class login_helper:
             'isAjax':'true'
         }
         result=self.__session.post('http://www.bjguahao.gov.cn/order/confirm.htm',headers=headers,params=params)
-        if result.status_code==200:
-            return True
-        else:
-            return False
+        json_str=json.loads(result.content)
+        print result.content
+        status=json_str['msg']
+        if status=="OK":
+            return 0
+        elif status==u'短信验证码不能为空！':
+            return 1
+        elif status==u'短信验证码错误！':
+            return 2
 
 
 
