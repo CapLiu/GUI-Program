@@ -15,6 +15,7 @@ class fill_info_window(QtGui.QDialog):
         self.resize(320,320)
         self.setWindowTitle(u'预约信息填写')
         self.setWindowIcon(QtGui.QIcon('red_cross.ico'))
+        self._font=QtGui.QFont('黑体',15)
         self.patient_card_lbl=QtGui.QLabel(u'就诊卡：')
         self.patient_card_txt=QtGui.QLineEdit(self)
         self.medic_card_lbl=QtGui.QLabel(u'医保卡：')
@@ -57,6 +58,18 @@ class fill_info_window(QtGui.QDialog):
         for i in range(0,len(kind_of_bx)):
             self.bx_code[kind_of_bx[i]]=i
             self.bx_combobox.addItem(kind_of_bx[i])
+        self.bx_lbl.setFont(self._font)
+        self.bx_combobox.setFont(self._font)
+        self.patient_card_lbl.setFont(self._font)
+        self.patient_card_txt.setFont(self._font)
+        self.medic_card_lbl.setFont(self._font)
+        self.medic_card_txt.setFont(self._font)
+        self.sms_verify_lbl.setFont(self._font)
+        self.sms_verify_txt.setFont(self._font)
+        self.mk_btn.setFont(self._font)
+        self.return_btn.setFont(self._font)
+        self._msgbox.setFont(self._font)
+        self._error_msg.setFont(self._font)
         self.setLayout(grid)
         self.mk_btn.clicked.connect(self.on_mk_btn_clicked)
         self.return_btn.clicked.connect(self.on_cancel_btn_clicked)
@@ -78,6 +91,8 @@ class fill_info_window(QtGui.QDialog):
             self._error_msg.showMessage(u'短信验证码不能为空！')
         elif status==2:
             self._error_msg.showMessage(u'短信验证码错误！')
+        else:
+            self._error_msg.showMessage(u'未知错误！')
 
 
     @QtCore.pyqtSlot()
@@ -95,9 +110,12 @@ class login_window(QtGui.QDialog):
     def __init__(self):
         QtGui.QWidget.__init__(self)
         self.resize(320,160)
+        self._font=QtGui.QFont('黑体',15)
+
         self._loginer=login_helper()
         self.setWindowTitle(u'登录')
         self.setWindowIcon(QtGui.QIcon('red_cross.ico'))
+        #窗体组件
         self.mobile_lbl=QtGui.QLabel(u'请输入手机号：')
         self.mobile_txt=QtGui.QLineEdit(self)
         self.passwd_lbl=QtGui.QLabel(u'请输入密码：')
@@ -118,6 +136,14 @@ class login_window(QtGui.QDialog):
         grid.addWidget(self.passwd_txt,1,1)
         grid.addWidget(self.login_btn,2,0)
         grid.addWidget(self.cancel_btn,2,1)
+        self.mobile_lbl.setFont(self._font)
+        self.passwd_lbl.setFont(self._font)
+        self.mobile_txt.setFont(self._font)
+        self.passwd_txt.setFont(self._font)
+        self.login_btn.setFont(self._font)
+        self.cancel_btn.setFont(self._font)
+        self._msgbox.setFont(self._font)
+        self._error_msg.setFont(self._font)
         self.setLayout(grid)
         #设置信号和槽
         self.login_btn.clicked.connect(self.on_login_btn_clicked)
@@ -160,6 +186,7 @@ class MainWindow(QtGui.QMainWindow):
         QtGui.QMainWindow.__init__(self)
         self.resize(950,300)
         self.setWindowTitle(u'北京市医院挂号查询')
+        self._font=QtGui.QFont('黑体',15)
         #登录窗口
         self._login_win=login_window()
         #信息填写窗口
@@ -167,10 +194,14 @@ class MainWindow(QtGui.QMainWindow):
         #工具栏
         self._login = QtGui.QAction(QtGui.QIcon('login.ico'), u'登录', self)
         self._reconnect=QtGui.QAction(QtGui.QIcon('reconnect.ico'),u'重新连接',self)
+        self._logout=QtGui.QAction(QtGui.QIcon('logout.ico'),u'退出',self)
         self.toolbar=self.addToolBar('Login')
         self.toolbar=self.addToolBar('Reconnect')
+        self.toolbar=self.addToolBar('Logout')
         self.toolbar.addAction(self._login)
         self.toolbar.addAction(self._reconnect)
+        self.toolbar.addAction(self._logout)
+
         #窗口组件
         self._hospital_label=QtGui.QLabel(u'医院：')
         self._consult_label=QtGui.QLabel(u'诊室：')
@@ -202,9 +233,20 @@ class MainWindow(QtGui.QMainWindow):
         grid.addWidget(self._result_list,2,1)
         grid.addWidget(self._show_doctor_btn,2,2)
         grid.addWidget(self._show_doctor_list,2,3)
+        self._hospital_list.setEditable(True)
+        self._consult_list.setEditable(True)
         self.wid.setLayout(grid)
         self._show_doctor_btn.setFixedWidth(30)
         self._show_doctor_btn.setFixedHeight(80)
+        #设置字体
+        self._hospital_label.setFont(self._font)
+        self._consult_label.setFont(self._font)
+        self._result_label.setFont(self._font)
+        self._hospital_list.setFont(self._font)
+        self._consult_list.setFont(self._font)
+        self._result_list.setFont(self._font)
+        self._show_doctor_list.setFont(self._font)
+        self._error_msg.setFont(self._font)
         #获取hospital_list
         self.get_hospital_list()
         #设置信号和槽
@@ -214,6 +256,7 @@ class MainWindow(QtGui.QMainWindow):
         self._login.triggered.connect(self.show_login_win)
         self._reconnect.triggered.connect(self.on_reconnect_clicked)
         self._show_doctor_btn.clicked.connect(self.on_show_doctor_btn_clicked)
+        self._logout.triggered.connect(self.logout)
 
 
 
@@ -247,14 +290,20 @@ class MainWindow(QtGui.QMainWindow):
     def on_hospital_list_activated(self):
         self._consult_list.clear()
         self._result_list.clear()
-        self.get_consult_name(self._searcher.get_value_from_hosp((unicode(self._hospital_list.currentText()))))
+        try:
+            self.get_consult_name(self._searcher.get_value_from_hosp((unicode(self._hospital_list.currentText()))))
+        except KeyError:
+            self._error_msg.showMessage(u'无此医院，请检查医院名称！')
         for item in self._consult_namelist:
             self._consult_list.addItem(unicode(item))
 
     @QtCore.pyqtSlot()
     def on_consult_list_activated(self):
         self._result_list.clear()
-        consult_url = self._searcher.get_value_from_consult(unicode(self._consult_list.currentText()))
+        try:
+            consult_url = self._searcher.get_value_from_consult(unicode(self._consult_list.currentText()))
+        except KeyError:
+            self._error_msg.showMessage(u'无此科室，请检查科室名称！')
         try:
             self._searcher.search_appointment(consult_url)
         except ConnectionError:
@@ -286,6 +335,13 @@ class MainWindow(QtGui.QMainWindow):
         self._login_win.show()
 
     @QtCore.pyqtSlot()
+    def logout(self):
+        global is_login
+        if is_login:
+            self._loginer.close_loginer()
+        self.close()
+
+    @QtCore.pyqtSlot()
     def on_show_doctor_btn_clicked(self):
         global is_login
         if is_login:
@@ -298,6 +354,7 @@ class MainWindow(QtGui.QMainWindow):
             for item in doctor_result:
                 self._show_doctor_list.addItem(item)
         else:
+
             self._error_msg.showMessage(u'请先登录，登录后方可预约。',u'Error')
 
     @QtCore.pyqtSlot()

@@ -183,6 +183,11 @@ class login_helper:
         elif status==u'短信验证码错误！':
             return 2
 
+    def close_loginer(self):
+        self.__session.cookies.clear()
+        self.__session.close()
+
+
 
 
 
