@@ -149,7 +149,6 @@ class login_helper:
 
     #预约
     def make_appoint(self,hospitalCardId,medicareCardId,reimbursementType,sms_verifycode):
-        reimbursementTypeCode=1
         headers={
             'Referer':self.__mk_appoint_url,
             'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36',
