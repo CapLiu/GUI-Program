@@ -162,7 +162,7 @@ class login_helper:
             'patientId':self.__patientid,
             'hospitalCardId':hospitalCardId,#就诊卡
             'medicareCardId':medicareCardId,#医保卡
-            'reimbursementType':reimbursementTypeCode,
+            'reimbursementType':reimbursementType,
             'smsVerifyCode':sms_verifycode,
             'isFirstTime':'1',
             'hasPowerHospitalCard':'2',
@@ -173,7 +173,6 @@ class login_helper:
         }
         result=self.__session.post('http://www.bjguahao.gov.cn/order/confirm.htm',headers=headers,params=params)
         json_str=json.loads(result.content)
-        print result.content
         status=json_str['msg']
         if status=="OK":
             return 0

@@ -56,7 +56,7 @@ class fill_info_window(QtGui.QDialog):
                     u'自费',u'生育险',u'其他'
                     ]
         for i in range(0,len(kind_of_bx)):
-            self.bx_code[kind_of_bx[i]]=i
+            self.bx_code[kind_of_bx[i]]=i+1
             self.bx_combobox.addItem(kind_of_bx[i])
         self.bx_lbl.setFont(self._font)
         self.bx_combobox.setFont(self._font)
@@ -195,9 +195,7 @@ class MainWindow(QtGui.QMainWindow):
         self._login = QtGui.QAction(QtGui.QIcon('login.ico'), u'登录', self)
         self._reconnect=QtGui.QAction(QtGui.QIcon('reconnect.ico'),u'重新连接',self)
         self._logout=QtGui.QAction(QtGui.QIcon('logout.ico'),u'退出',self)
-        self.toolbar=self.addToolBar('Login')
-        self.toolbar=self.addToolBar('Reconnect')
-        self.toolbar=self.addToolBar('Logout')
+        self.toolbar=self.addToolBar('MainToolbar')
         self.toolbar.addAction(self._login)
         self.toolbar.addAction(self._reconnect)
         self.toolbar.addAction(self._logout)
