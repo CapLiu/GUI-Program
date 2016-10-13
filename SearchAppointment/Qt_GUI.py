@@ -7,6 +7,65 @@ import threading
 
 
 is_login=False
+#个人信息窗口
+class info_window(QtGui.QDialog):
+    def __init__(self):
+        QtGui.QWidget.__init__(self)
+        self.resize(320,320)
+        self.setWindowTitle(u'个人信息')
+        self.setWindowIcon(QtGui.QIcon('info.ico'))
+        self._font=QtGui.QFont('黑体',15)
+        self.__loginer=login_helper()
+        #窗口组件
+        self.__name_lbl=QtGui.QLabel(u'姓名：')
+        self.__sex_lbl=QtGui.QLabel(u'性别：')
+        self.__paper_lbl=QtGui.QLabel(u'证件：')
+        self.__mobile_lbl=QtGui.QLabel(u'手机：')
+        self.__name_lbl_val = QtGui.QLabel()
+        self.__sex_lbl_val = QtGui.QLabel()
+        self.__paper_lbl_val = QtGui.QLabel()
+        self.__mobile_lbl_val = QtGui.QLabel()
+        self.__entry_btn=QtGui.QPushButton(u'确定')
+        self.initGUI()
+
+    def initGUI(self):
+        grid=QtGui.QGridLayout(self)
+        grid.addWidget(self.__name_lbl,0,0)
+        grid.addWidget(self.__name_lbl_val,0,1)
+        grid.addWidget(self.__sex_lbl,1,0)
+        grid.addWidget(self.__sex_lbl_val,1,1)
+        grid.addWidget(self.__paper_lbl,2,0)
+        grid.addWidget(self.__paper_lbl_val,2,1)
+        grid.addWidget(self.__mobile_lbl,3,0)
+        grid.addWidget(self.__mobile_lbl_val,3,1)
+        grid.addWidget(self.__entry_btn,4,1)
+        self.setLayout(grid)
+        self.__name_lbl.setFont(self._font)
+        self.__name_lbl_val.setFont(self._font)
+        self.__sex_lbl.setFont(self._font)
+        self.__sex_lbl_val.setFont(self._font)
+        self.__paper_lbl.setFont(self._font)
+        self.__paper_lbl_val.setFont(self._font)
+        self.__mobile_lbl.setFont(self._font)
+        self.__mobile_lbl_val.setFont(self._font)
+        self.__entry_btn.setFont(self._font)
+        self.__entry_btn.clicked.connect(self.on_entry_btn_clicked)
+
+    def set_loginer(self,loginer):
+        self.__loginer=loginer
+
+    def set_info(self):
+        self.__loginer.person_info()
+        tmp_info=self.__loginer.get_person_info()
+        self.__name_lbl_val.setText(unicode(tmp_info[0]))
+        self.__sex_lbl_val.setText(unicode(tmp_info[1]))
+        self.__paper_lbl_val.setText(unicode(tmp_info[2]))
+        self.__mobile_lbl_val.setText(unicode(tmp_info[3]))
+
+    @QtCore.pyqtSlot()
+    def on_entry_btn_clicked(self):
+        self.close()
+
 
 #预约信息填写窗口
 class fill_info_window(QtGui.QDialog):
@@ -29,6 +88,7 @@ class fill_info_window(QtGui.QDialog):
 
         self._msgbox=QtGui.QMessageBox(self)
         self._error_msg=QtGui.QErrorMessage(self)
+        self._error_msg.setWindowTitle(u'错误')
 
         self.bx_code={}
         self._loginer=login_helper()
@@ -78,7 +138,6 @@ class fill_info_window(QtGui.QDialog):
     @QtCore.pyqtSlot()
     def on_mk_btn_clicked(self):
         bx_kind=self.bx_combobox.currentText()
-        print bx_kind
         hospitalCardId=str(self.patient_card_txt.text())#就诊卡
         medicareCardId=str(self.medic_card_txt.text())#医保卡
         reimbursementType=self.bx_code[unicode(bx_kind)]
@@ -124,6 +183,7 @@ class login_window(QtGui.QDialog):
         self.login_btn=QtGui.QPushButton(u'登录')
         self.cancel_btn=QtGui.QPushButton(u'取消')
         self._error_msg=QtGui.QErrorMessage(self)
+        self._error_msg.setWindowTitle(u'错误')
         self._msgbox=QtGui.QMessageBox(self)
         self.isLogin=False
         self.initGUI()
@@ -191,13 +251,17 @@ class MainWindow(QtGui.QMainWindow):
         self._login_win=login_window()
         #信息填写窗口
         self._info_win=fill_info_window()
+        #个人信息窗口
+        self._person_info=info_window()
         #工具栏
         self._login = QtGui.QAction(QtGui.QIcon('login.ico'), u'登录', self)
         self._reconnect=QtGui.QAction(QtGui.QIcon('reconnect.ico'),u'重新连接',self)
+        self._personInfo=QtGui.QAction(QtGui.QIcon('info.ico'),u'个人信息',self)
         self._logout=QtGui.QAction(QtGui.QIcon('logout.ico'),u'退出',self)
         self.toolbar=self.addToolBar('MainToolbar')
         self.toolbar.addAction(self._login)
         self.toolbar.addAction(self._reconnect)
+        self.toolbar.addAction(self._personInfo)
         self.toolbar.addAction(self._logout)
 
         #窗口组件
@@ -214,10 +278,12 @@ class MainWindow(QtGui.QMainWindow):
         self._consult_namelist=[]
         self._loginer=login_helper()
         self._error_msg=QtGui.QErrorMessage(self)
+        self._error_msg.setWindowTitle(u'错误')
         self.setWindowIcon(QtGui.QIcon('red_cross.ico'))
         #重设布局
         self.wid=QtGui.QWidget(self)
         self.setCentralWidget(self.wid)
+
         self.initUI()
 
 
@@ -255,6 +321,7 @@ class MainWindow(QtGui.QMainWindow):
         self._reconnect.triggered.connect(self.on_reconnect_clicked)
         self._show_doctor_btn.clicked.connect(self.on_show_doctor_btn_clicked)
         self._logout.triggered.connect(self.logout)
+        self._personInfo.triggered.connect(self.on_personInfo_click)
 
 
 
@@ -283,6 +350,9 @@ class MainWindow(QtGui.QMainWindow):
 
     def get_loginer(self):
         return self._loginer
+
+    def closeEvent(self, *args, **kwargs):
+        self._loginer.close_loginer()
 
     @QtCore.pyqtSlot()
     def on_hospital_list_activated(self):
@@ -362,6 +432,17 @@ class MainWindow(QtGui.QMainWindow):
         self._loginer.send_sms_verify()
         self._info_win.set_loginer(self._loginer)
         self._info_win.show()
+
+    @QtCore.pyqtSlot()
+    def on_personInfo_click(self):
+        global is_login
+        if is_login:
+            self._loginer=self._login_win.get_login_helper()
+            self._person_info.set_loginer(self._loginer)
+            self._person_info.set_info()
+            self._person_info.show()
+        else:
+            self._error_msg.showMessage(u'请先登录！')
 
 class my_app:
     def __init__(self):

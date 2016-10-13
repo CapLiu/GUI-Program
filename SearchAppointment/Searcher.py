@@ -1,5 +1,5 @@
 # -*- coding=utf-8 -*-
-import requests,re
+import requests,re,datetime
 from  bs4 import BeautifulSoup
 import sitecustomize
 from requests.exceptions import Timeout,ConnectionError
@@ -91,10 +91,16 @@ class searcher:
         return self._consult_dict.keys()
 
     def get_value_from_hosp(self,key):
-        return self._hospital_dict[key]
+        try:
+            return self._hospital_dict[key]
+        except KeyError,e:
+            raise e
 
     def get_value_from_consult(self,key):
-        return self._consult_dict[key]
+        try:
+            return self._consult_dict[key]
+        except KeyError,e:
+            raise e
 
     def get_result_list(self):
         return self._search_result
@@ -118,6 +124,16 @@ class searcher:
             for i in range(0,len(tmp_consult_urllist)):
                 self._consult_dict[department_list[j].text+'-'+tmp_consult_urllist[i].text]=self._baseurl+tmp_consult_urllist[i]['href']
 
+    def get_weekday(self,date):
+        weekday_dict={0:u'星期一',
+                      1:u'星期二',
+                      2:u'星期三',
+                      3:u'星期四',
+                      4:u'星期五',
+                      5:u'星期六',
+                      6:u'星期日'}
+        return weekday_dict[date.weekday()]
+
     def search_appointment(self,consulting_url):
         self._search_result = []
         week_url=""
@@ -138,7 +154,13 @@ class searcher:
                     d_time= u'上午:'
                 else:
                     d_time= u'下午:'
-                temp_result=getdate.search(str(result_list[i])).group(0)+' '+d_time+str(result_list[i].text).lstrip()
+                date_day=getdate.search(str(result_list[i])).group(0)
+                year=int(date_day.split('-')[0])
+                month=int(date_day.split('-')[1])
+                day=int(date_day.split('-')[2])
+                tmp_date=datetime.datetime(year=year,month=month,day=day)
+                weekday=self.get_weekday(tmp_date)
+                temp_result=getdate.search(str(result_list[i])).group(0)+' '+d_time+str(result_list[i].text).lstrip()+' '+weekday
                 self._search_result.append(temp_result)
             if self._search_result:
                 self._appoint_url=consulting_url+week_url
