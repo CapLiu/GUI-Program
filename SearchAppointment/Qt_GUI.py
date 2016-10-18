@@ -298,7 +298,9 @@ class MainWindow(QtGui.QMainWindow):
         grid.addWidget(self._show_doctor_btn,2,2)
         grid.addWidget(self._show_doctor_list,2,3)
         self._hospital_list.setEditable(True)
+        self._hospital_list.completer().setCompletionMode(QtGui.QCompleter.PopupCompletion)
         self._consult_list.setEditable(True)
+        self._consult_list.completer().setCompletionMode(QtGui.QCompleter.PopupCompletion)
         self.wid.setLayout(grid)
         self._show_doctor_btn.setFixedWidth(30)
         self._show_doctor_btn.setFixedHeight(80)
@@ -372,6 +374,7 @@ class MainWindow(QtGui.QMainWindow):
             consult_url = self._searcher.get_value_from_consult(unicode(self._consult_list.currentText()))
         except KeyError:
             self._error_msg.showMessage(u'无此科室，请检查科室名称！')
+            return
         try:
             self._searcher.search_appointment(consult_url)
         except ConnectionError:
