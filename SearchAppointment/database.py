@@ -62,8 +62,9 @@ class db_helper:
         conn=sqlite3.connect(self.__db_path)
         cur=conn.cursor()
         try:
-            cur.execute(r'select mobile from SA_usr')
+            cur.execute(r'select mobile,comment from SA_usr')
             result = cur.fetchall()
+            print result
         except sqlite3.OperationalError:
             return False
         finally:

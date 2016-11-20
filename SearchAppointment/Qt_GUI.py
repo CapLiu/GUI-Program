@@ -309,7 +309,8 @@ class login_window(QtGui.QDialog):
 
         usr_list=self._dbhelper.get_user_list()
         for usr in usr_list:
-            self.usual_usr_lst.addItem(usr[0])
+            tmp=usr[0]+','+usr[1]
+            self.usual_usr_lst.addItem(tmp)
         #设置信号和槽
         self.login_btn.clicked.connect(self.on_login_btn_clicked)
         self.cancel_btn.clicked.connect(self.on_cancel_btn_clicked)
@@ -327,7 +328,8 @@ class login_window(QtGui.QDialog):
         self.usual_usr_lst.clear()
         usr_list = self._dbhelper.get_user_list()
         for usr in usr_list:
-            self.usual_usr_lst.addItem(usr[0])
+            tmp=usr[0]+','+usr[1]
+            self.usual_usr_lst.addItem(tmp)
 
     @QtCore.pyqtSlot()
     def on_login_btn_clicked(self):
@@ -353,7 +355,8 @@ class login_window(QtGui.QDialog):
 
     @QtCore.pyqtSlot()
     def on_usual_lst_clicked(self):
-        usr,pwd=self._dbhelper.get_usr(self.usual_usr_lst.currentText())
+        tmp_usr=self.usual_usr_lst.currentText().split(',')[0]
+        usr,pwd=self._dbhelper.get_usr(tmp_usr)
         self.mobile_txt.setText(usr)
         self.passwd_txt.setText(pwd)
 
