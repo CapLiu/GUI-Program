@@ -3,10 +3,100 @@ from Searcher import searcher
 from Loginer import login_helper
 from requests.exceptions import ConnectionError,Timeout
 from PyQt4 import QtGui,QtCore
-import threading
+from database import db_helper
+import re,sqlite3
 
 
 is_login=False
+
+#添加用户窗口
+class addusr_window(QtGui.QDialog):
+    def __init__(self):
+        QtGui.QWidget.__init__(self)
+        self.resize(480,320)
+        self.setWindowTitle(u'添加用户')
+        self.setWindowIcon(QtGui.QIcon('adduser.ico'))
+        self._font=QtGui.QFont('黑体',15)
+        #窗口组件
+        self.__mob_lbl=QtGui.QLabel(u'手机号：')
+        self.__mob_txt=QtGui.QLineEdit(self)
+        self.__pwd_lbl=QtGui.QLabel(u'密码：')
+        self.__pwd_txt=QtGui.QLineEdit(self)
+        self.__pwd_txt.setEchoMode(QtGui.QLineEdit.Password)
+        self.__comt_lbl=QtGui.QLabel(u'备注')
+        self.__comt_txt=QtGui.QLineEdit(self)
+        self.__add_btn=QtGui.QPushButton(u'添加')
+        self.__reset_btn=QtGui.QPushButton(u'重置')
+        self.__cancel_btn=QtGui.QPushButton(u'退出')
+        self.__msgbox=QtGui.QMessageBox(self)
+        self.__errorbox=QtGui.QErrorMessage(self)
+        self.__errorbox.setWindowTitle(u'错误')
+        #数据库
+        self.__dbhelper=db_helper()
+        self.initGUI()
+
+    def initGUI(self):
+        grid=QtGui.QGridLayout(self)
+        grid.addWidget(self.__mob_lbl,0,0)
+        grid.addWidget(self.__mob_txt,0,1)
+        grid.addWidget(self.__pwd_lbl,1,0)
+        grid.addWidget(self.__pwd_txt,1,1)
+        grid.addWidget(self.__comt_lbl,2,0)
+        grid.addWidget(self.__comt_txt,2,1)
+        grid.addWidget(self.__add_btn,3,0)
+        grid.addWidget(self.__reset_btn,3,1)
+        grid.addWidget(self.__cancel_btn,3,2)
+        self.setLayout(grid)
+        self.__mob_lbl.setFont(self._font)
+        self.__mob_txt.setFont(self._font)
+        self.__pwd_lbl.setFont(self._font)
+        self.__pwd_txt.setFont(self._font)
+        self.__add_btn.setFont(self._font)
+        self.__reset_btn.setFont(self._font)
+        self.__cancel_btn.setFont(self._font)
+        self.__comt_lbl.setFont(self._font)
+        self.__comt_txt.setFont(self._font)
+        self.__msgbox.setFont(self._font)
+        self.__errorbox.setFont(self._font)
+
+        self.__add_btn.clicked.connect(self.on_add_btn_click)
+        self.__reset_btn.clicked.connect(self.on_reset_btn_click)
+        self.__cancel_btn.clicked.connect(self.on_cancel_btn_click)
+
+    #槽函数
+    @QtCore.pyqtSlot()
+    def on_add_btn_click(self):
+        phone_pattern=re.compile('^\d{11}')
+        tmp_mobil_no=self.__mob_txt.text()
+        if tmp_mobil_no.length()==11:
+            result=phone_pattern.match(tmp_mobil_no)
+            if result is not None:
+                status=self.__dbhelper.create_user(self.__mob_txt.text(),self.__pwd_txt.text(),self.__comt_txt.text())
+                if status==True:
+                    self.__msgbox.information(self,u'提示',u'用户添加成功!')
+                elif type(status)==sqlite3.IntegrityError:
+                    if status.message=='column mobile is not unique':
+                        self.__errorbox.showMessage(u'该手机号已存在！')
+            else:
+                self.__errorbox.showMessage(u'手机号码格式错误，请检查！')
+        else:
+            self.__errorbox.showMessage(u'手机号码位数错误，请检查！')
+        self.__mob_txt.setText('')
+        self.__pwd_txt.setText('')
+        self.__comt_txt.setText('')
+
+    @QtCore.pyqtSlot()
+    def on_reset_btn_click(self):
+        self.__mob_txt.setText('')
+        self.__pwd_txt.setText('')
+        self.__comt_txt.setText('')
+
+    @QtCore.pyqtSlot()
+    def on_cancel_btn_click(self):
+        self.close()
+
+
+
 #个人信息窗口
 class info_window(QtGui.QDialog):
     def __init__(self):
@@ -168,7 +258,7 @@ class fill_info_window(QtGui.QDialog):
 class login_window(QtGui.QDialog):
     def __init__(self):
         QtGui.QWidget.__init__(self)
-        self.resize(320,160)
+        self.resize(560,160)
         self._font=QtGui.QFont('黑体',15)
 
         self._loginer=login_helper()
@@ -180,22 +270,30 @@ class login_window(QtGui.QDialog):
         self.passwd_lbl=QtGui.QLabel(u'请输入密码：')
         self.passwd_txt=QtGui.QLineEdit(self)
         self.passwd_txt.setEchoMode(QtGui.QLineEdit.Password)
+        self.usual_usr_lbl=QtGui.QLabel(u'常用用户：')
+        self.usual_usr_lst=QtGui.QComboBox(self)
         self.login_btn=QtGui.QPushButton(u'登录')
         self.cancel_btn=QtGui.QPushButton(u'取消')
+        self.refresh_btn=QtGui.QPushButton(u'刷新')
         self._error_msg=QtGui.QErrorMessage(self)
         self._error_msg.setWindowTitle(u'错误')
         self._msgbox=QtGui.QMessageBox(self)
+        self._dbhelper=db_helper()
         self.isLogin=False
         self.initGUI()
 
     def initGUI(self):
         grid=QtGui.QGridLayout(self)
+
         grid.addWidget(self.mobile_lbl,0,0)
         grid.addWidget(self.mobile_txt,0,1)
         grid.addWidget(self.passwd_lbl,1,0)
         grid.addWidget(self.passwd_txt,1,1)
-        grid.addWidget(self.login_btn,2,0)
-        grid.addWidget(self.cancel_btn,2,1)
+        grid.addWidget(self.usual_usr_lbl,2,0)
+        grid.addWidget(self.usual_usr_lst,2,1)
+        grid.addWidget(self.login_btn,3,0)
+        grid.addWidget(self.refresh_btn,3,1)
+        grid.addWidget(self.cancel_btn,3,2)
         self.mobile_lbl.setFont(self._font)
         self.passwd_lbl.setFont(self._font)
         self.mobile_txt.setFont(self._font)
@@ -204,16 +302,32 @@ class login_window(QtGui.QDialog):
         self.cancel_btn.setFont(self._font)
         self._msgbox.setFont(self._font)
         self._error_msg.setFont(self._font)
+        self.usual_usr_lbl.setFont(self._font)
+        self.usual_usr_lst.setFont(self._font)
+        self.refresh_btn.setFont(self._font)
         self.setLayout(grid)
+
+        usr_list=self._dbhelper.get_user_list()
+        for usr in usr_list:
+            self.usual_usr_lst.addItem(usr[0])
         #设置信号和槽
         self.login_btn.clicked.connect(self.on_login_btn_clicked)
         self.cancel_btn.clicked.connect(self.on_cancel_btn_clicked)
+        self.usual_usr_lst.activated.connect(self.on_usual_lst_clicked)
+        self.refresh_btn.clicked.connect(self.on_refresh_btn_clicked)
 
     def get_login_helper(self):
         return self._loginer
 
     def get_islogin(self):
         return self.isLogin
+
+    @QtCore.pyqtSlot()
+    def on_refresh_btn_clicked(self):
+        self.usual_usr_lst.clear()
+        usr_list = self._dbhelper.get_user_list()
+        for usr in usr_list:
+            self.usual_usr_lst.addItem(usr[0])
 
     @QtCore.pyqtSlot()
     def on_login_btn_clicked(self):
@@ -238,8 +352,16 @@ class login_window(QtGui.QDialog):
         self.close()
 
     @QtCore.pyqtSlot()
+    def on_usual_lst_clicked(self):
+        usr,pwd=self._dbhelper.get_usr(self.usual_usr_lst.currentText())
+        self.mobile_txt.setText(usr)
+        self.passwd_txt.setText(pwd)
+
+    @QtCore.pyqtSlot()
     def on_cancel_btn_clicked(self):
         self.close()
+
+
 
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
@@ -253,14 +375,18 @@ class MainWindow(QtGui.QMainWindow):
         self._info_win=fill_info_window()
         #个人信息窗口
         self._person_info=info_window()
+        #添加用户窗口
+        self._adduser_win=addusr_window()
         #工具栏
         self._login = QtGui.QAction(QtGui.QIcon('login.ico'), u'登录', self)
         self._reconnect=QtGui.QAction(QtGui.QIcon('reconnect.ico'),u'重新连接',self)
+        self._adduser=QtGui.QAction(QtGui.QIcon('adduser.ico'),u'添加常用用户',self)
         self._personInfo=QtGui.QAction(QtGui.QIcon('info.ico'),u'个人信息',self)
         self._logout=QtGui.QAction(QtGui.QIcon('logout.ico'),u'退出',self)
         self.toolbar=self.addToolBar('MainToolbar')
         self.toolbar.addAction(self._login)
         self.toolbar.addAction(self._reconnect)
+        self.toolbar.addAction(self._adduser)
         self.toolbar.addAction(self._personInfo)
         self.toolbar.addAction(self._logout)
 
@@ -324,6 +450,7 @@ class MainWindow(QtGui.QMainWindow):
         self._show_doctor_btn.clicked.connect(self.on_show_doctor_btn_clicked)
         self._logout.triggered.connect(self.logout)
         self._personInfo.triggered.connect(self.on_personInfo_click)
+        self._adduser.triggered.connect(self.on_adduser_click)
 
 
 
@@ -446,6 +573,10 @@ class MainWindow(QtGui.QMainWindow):
             self._person_info.show()
         else:
             self._error_msg.showMessage(u'请先登录！')
+
+    @QtCore.pyqtSlot()
+    def on_adduser_click(self):
+        self._adduser_win.show()
 
 class my_app:
     def __init__(self):
